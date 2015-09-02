@@ -180,18 +180,16 @@ int main(int argc, char** argv) {
 
 #ifdef CLIENT
 int main(int argc, char** argv){
+  if (argc < 2) {
+    printf ("ERROR: Chamada incorreta.\nEscreva '<nome do programa> <endereço IP> <porta>'.\n");
+    return 0;
+  }
+
   receivingBuffer = sendingBuffer = new char[512];
   matrix clientMatrix;
 
   TcpClient client;
-  client.connect ("192.168.1.103", atoi(argv[1]));
-
-  for (int i=0; i<10; i++){
-    cin >> sendingBuffer;
-    client.send (sendingBuffer);
-  }
-
-  /*
+  client.connect (argv[1], atoi(argv[2]));
 
   while (client.receive (receivingBuffer, textLength)) {
     cout << receivingBuffer;
@@ -200,7 +198,6 @@ int main(int argc, char** argv){
       client.send (sendingBuffer);
     }
   }
-  */
 
   delete[] sendingBuffer;
 }
