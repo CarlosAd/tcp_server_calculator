@@ -9,6 +9,9 @@
 using namespace std;
 
 typedef vector< vector < int > > matrix;
+typedef vector< int > row;
+typedef vector< int > column;
+
 char *receivingBuffer, *sendingBuffer;
 int textLength;
 
@@ -33,44 +36,52 @@ void printMatrixToBuffer (matrix& m) {
 
 void readMatrixFromClient (TcpServer& server, matrix& inMatrix) {
   inMatrix.clear();
-  strcpy (sendingBuffer, "Number of Rows:");
+  int numberOfColumns, numberOfRows;
+
+  sprintf (sendingBuffer, "Number of Rows:");
   server.send (sendingBuffer);
   server.receive (receivingBuffer, textLength);
-  inMatrix.resize(atoi (receivingBuffer));
+  numberOfRows = atoi (receivingBuffer);
 
-  strcpy (sendingBuffer, "Number of Columns:");
+  sprintf (sendingBuffer, "Number of Columns:");
   server.send (sendingBuffer);
   server.receive (receivingBuffer, textLength);
-  int numberOfCols = atoi (receivingBuffer);
-  for (int i = 0; i < inMatrix.size(); i++) {
-    inMatrix[i].resize (numberOfCols);
+  numberOfColumns = atoi (receivingBuffer);
 
-    for (int j = 0; j < inMatrix[i].size(); j++){
+  for (int i = 0; i < numberOfRows; i++) {
+    inMatrix.push_back(row());
+    for (int j = 0; j < numberOfColumns; j++){
       sprintf (sendingBuffer, "Element (%d, %d):", i+1, j+1);
       server.send (sendingBuffer);
       server.receive (receivingBuffer, textLength);
-      inMatrix[i][j] = atoi(receivingBuffer);
+      inMatrix[i].push_back(atoi(receivingBuffer));
     }
   }
 }
 
 matrix addition (matrix& firstMatrix, matrix& secondMatrix) {
-  matrix res (firstMatrix.size(), vector< int > (firstMatrix[0].size()));
+  matrix res;
+  int numberOfRows = firstMatrix.size();
+  int numberOfColumns = firstMatrix[0].size();
 
-  for (int i = 0; i < firstMatrix.size(); i++) {
-    for (int j = 0; j < firstMatrix[i].size(); j++) {
-      res[i][j] = firstMatrix[i][j] + secondMatrix[i][j];
+  for (int i = 0; i < numberOfRows; i++) {
+    res.push_back(row());
+    for (int j = 0; j < numberOfColumns; j++) {
+      res[i].push_back(firstMatrix[i][j] + secondMatrix[i][j]);
     }
   }
   return res;
 }
 
 matrix subtraction (matrix& firstMatrix, matrix& secondMatrix) {
-  matrix res (firstMatrix.size(), vector< int > (firstMatrix[0].size()));
+  matrix res;
+  int numberOfRows = firstMatrix.size();
+  int numberOfColumns = firstMatrix[0].size();
 
-  for (int i = 0; i < firstMatrix.size(); i++) {
-    for (int j = 0; j < firstMatrix[i].size(); j++) {
-      res[i][j] = firstMatrix[i][j] - secondMatrix[i][j];
+  for (int i = 0; i < numberOfRows; i++) {
+    res.push_back (row());
+    for (int j = 0; j < numberOfColumns; j++) {
+      res[i].push_back (firstMatrix[i][j] - secondMatrix[i][j]);
     }
   }
   return res;
@@ -79,9 +90,10 @@ matrix subtraction (matrix& firstMatrix, matrix& secondMatrix) {
 matrix multiplation (matrix& firstMatrix, matrix& secondMatrix) {
   int resNumberOfRows = firstMatrix.size();
   int resNumberOfCols = secondMatrix[0].size();
-  matrix res (resNumberOfRows, vector< int > (resNumberOfCols));
+  matrix res;
 
   for (int i = 0; i < resNumberOfRows; i++) {
+    res.push_back (row (resNumberOfCols, 0));
     for (int j = 0; j < resNumberOfCols; j++) {
       for (int k = 0; k < secondMatrix.size(); k++) {
         res[i][j] += firstMatrix[i][k]*secondMatrix[k][j];
@@ -89,6 +101,22 @@ matrix multiplation (matrix& firstMatrix, matrix& secondMatrix) {
     }
   }
   return res;
+}
+
+matrix transpose (matrix& m) {
+  matrix res;
+  for (int j = 0; j < m[0].size(); j++) {
+    res.push_back(row());
+    for (int i = 0; i < m.size(); i++) {
+      res[j].push_back(m[i][j]);
+    }
+  }
+  return res;
+}
+
+void sendMenu (TcpServer& server) {
+  sprintf (sendingBuffer, "Operations\n1 - Addition\n2 - Subtraction\n3 - Multiplication\n4 - Transpose\nChoose one operation:");
+  server.send (sendingBuffer);
 }
 
 #ifdef SERVER
@@ -105,74 +133,91 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  sprintf (sendingBuffer, "Operations\n1 - Addition\n2 - Subtraction\n3 - Multiplication\nChoose one operation:");
-  server.send (sendingBuffer);
+  sendMenu(server);
   server.receive (receivingBuffer, textLength);
 
-  int operationOption = atoi(receivingBuffer);
+  int operationOption = atoi (receivingBuffer);
 
-  if ((operationOption != 1) && (operationOption != 2) && (operationOption != 3)){
+  if ((operationOption != 1) && (operationOption != 2) && (operationOption != 3) && (operationOption != 4)){
     sprintf (sendingBuffer, "Invalid Option.\n");
     server.send (sendingBuffer);
     return 0;
   }
 
-  sprintf (sendingBuffer, "\nFirst Matrix:\n"); 
-  server.send (sendingBuffer);
-
-  readMatrixFromClient (server, firstMatrix);
-
-  sprintf (sendingBuffer, "\nFirst Matrix:\n"); 
-  server.send (sendingBuffer);
-
-  printMatrixToBuffer (firstMatrix);          
-  server.send (sendingBuffer);
-
-  sprintf (sendingBuffer, "\nSecond Matrix:\n");
-  server.send (sendingBuffer);
-  
-  readMatrixFromClient (server, secondMatrix);
-
-  sprintf (sendingBuffer, "\nSecond Matrix:\n");
-  server.send (sendingBuffer);
-
-  printMatrixToBuffer (secondMatrix);
-  server.send (sendingBuffer);
-
   matrix result;
 
-  switch (operationOption){
-    case 1:
-      if ((firstMatrix.size() != secondMatrix.size()) || (firstMatrix[0].size() != secondMatrix[0].size())){
-        sprintf (sendingBuffer, "Dimensions don't match. Operation canceled.\n");
-        server.send (sendingBuffer);
-        return 0;
-      }
-      result = addition (firstMatrix, secondMatrix);
-      break;
-    case 2:
-      if ((firstMatrix.size() != secondMatrix.size()) || (firstMatrix[0].size() != secondMatrix[0].size())){
-        sprintf (sendingBuffer, "Dimensions don't match. Operation canceled.\n");
-        server.send (sendingBuffer);
-        return 0;
-      }
-      result = subtraction (firstMatrix, secondMatrix);
-      break;
-    case 3:
-      if (firstMatrix[0].size() != secondMatrix.size()){
-        sprintf (sendingBuffer, "Dimensions don't match. Operation canceled.\n");
-        server.send (sendingBuffer);
-        return 0;
-      }
-      result = multiplation (firstMatrix, secondMatrix);
-      break;
+  if (operationOption != 4){
+
+    sprintf (sendingBuffer, "\nFirst Matrix:\n"); 
+    server.send (sendingBuffer);
+
+    readMatrixFromClient (server, firstMatrix);
+
+    sprintf (sendingBuffer, "\nFirst Matrix:\n"); 
+    server.send (sendingBuffer);
+
+    printMatrixToBuffer (firstMatrix);          
+    server.send (sendingBuffer);
+
+    sprintf (sendingBuffer, "\nSecond Matrix:\n");
+    server.send (sendingBuffer);
+    
+    readMatrixFromClient (server, secondMatrix);
+
+    sprintf (sendingBuffer, "\nSecond Matrix:\n");
+    server.send (sendingBuffer);
+
+    printMatrixToBuffer (secondMatrix);
+    server.send (sendingBuffer);
+
+    switch (operationOption){
+      case 1:
+        if ((firstMatrix.size() != secondMatrix.size()) || (firstMatrix[0].size() != secondMatrix[0].size())){
+          sprintf (sendingBuffer, "Dimensions don't match. Operation canceled.\n");
+          server.send (sendingBuffer);
+          return 0;
+        }
+        result = addition (firstMatrix, secondMatrix);
+        break;
+      case 2:
+        if ((firstMatrix.size() != secondMatrix.size()) || (firstMatrix[0].size() != secondMatrix[0].size())){
+          sprintf (sendingBuffer, "Dimensions don't match. Operation canceled.\n");
+          server.send (sendingBuffer);
+          return 0;
+        }
+        result = subtraction (firstMatrix, secondMatrix);
+        break;
+      case 3:
+        if (firstMatrix[0].size() != secondMatrix.size()){
+          sprintf (sendingBuffer, "Dimensions don't match. Operation canceled.\n");
+          server.send (sendingBuffer);
+          return 0;
+        }
+        result = multiplation (firstMatrix, secondMatrix);
+        break;
+    }
+  }
+  else {
+    sprintf (sendingBuffer, "\nMatrix:\n"); 
+    server.send (sendingBuffer);
+
+    readMatrixFromClient (server, firstMatrix);
+
+    sprintf (sendingBuffer, "\nMatrix:\n"); 
+    server.send (sendingBuffer);
+
+    printMatrixToBuffer (firstMatrix);          
+    server.send (sendingBuffer);
+
+    result = transpose (firstMatrix);
   }
 
-  sprintf (sendingBuffer, "Resulting Matrix:\n");
+  sprintf (sendingBuffer, "\nResulting Matrix:\n");
   server.send (sendingBuffer);
 
   printMatrixToBuffer (result);
   server.send (sendingBuffer);
+
 
   delete[] sendingBuffer;
 }
