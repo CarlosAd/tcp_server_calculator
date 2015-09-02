@@ -19,6 +19,6 @@ $ make<br />
 ## Instruções para utilização
 No diretório ***build/bin***, serão gerados os dois executáveis, *server* e *client*.<br />
 Para executar o *server*, escreva<br />
-$ ./server <número da porta>
+$ ./server "número da porta"
 Para executar o *client*, escreva<br />
-$ ./server <indereço IP do servidor> <número da porta>
+$ ./server "indereço IP do servidor" "número da porta"
