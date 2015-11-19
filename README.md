@@ -21,4 +21,4 @@ No diretório ***build/bin***, serão gerados os dois executáveis, *server* e *
 Para executar o *server*, escreva<br />
 $ ./server "número da porta"<br /><br />
 Para executar o *client*, escreva<br />
-$ ./server "indereço IP do servidor" "número da porta"
+$ ./client "endereço IP do servidor" "número da porta"
