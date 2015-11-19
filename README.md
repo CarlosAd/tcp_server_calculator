@@ -22,3 +22,7 @@ Para executar o *server*, escreva<br />
 $ ./server "número da porta"<br /><br />
 Para executar o *client*, escreva<br />
 $ ./client "endereço IP do servidor" "número da porta"
+
+## Equipe
+### Carlos Alberto Duarte Pinto
+### Romulo Braga Pacheco de Sousa
